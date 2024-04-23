@@ -28,6 +28,7 @@ ModalityType = SimpleNamespace(
     VISION="vision",
     TEXT="text",
     AUDIO="audio",
+    VIDEO="video",  # added by Salman
     THERMAL="thermal",
     DEPTH="depth",
     IMU="imu",
