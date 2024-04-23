@@ -12,6 +12,7 @@ MODALITY_TO_PREPROCESSING = {
     ModalityType.TEXT: data.load_and_transform_text,
     ModalityType.VISION: data.load_and_transform_vision_data,
     ModalityType.AUDIO: data.load_and_transform_audio_data,
+    ModalityType.VIDEO: data.load_and_transform_video_data,
 }
 
 
@@ -24,9 +25,13 @@ class Predictor(BasePredictor):
 
     def predict(
         self,
-        input_data: Union[str, bytes] = Input(
-        description="Input data that you want to embed. Provide text, image bytes, audio bytes, etc.",
-        default=None,
+        input: Path = Input(
+            description="file that you want to embed. Needs to be text, vision, or audio.",
+            default=None,
+        ),
+        text_input: str = Input(
+            description="text that you want to embed. Provide a string here instead of a text file to input if you'd like.",
+            default=None,
         ),
         modality: str = Input(
             description="modality of the input you'd like to embed",
@@ -36,15 +41,27 @@ class Predictor(BasePredictor):
     ) -> List[float]:
         """Infer a single embedding with the model"""
 
-        if not input_data:
+        if not input and not text_input:
             raise Exception(
-                "No input data provided! Provide input_data in order to generate an embedding"
+                "Neither input nor text_input were provided! Provide one in order to generate an embedding"
             )
 
         modality_function = MODALITY_TO_PREPROCESSING[modality]
 
+        if modality == "text":
+            if input and text_input:
+                raise Exception(
+                    f"Input and text_input were both provided! Only provide one to generate an embedding.\nInput provided: {input}\nText Input provided: {text_input}"
+                )
+            if text_input:
+                input = text_input
+            else:
+                with open(input, "r") as f:
+                    text_input = f.readlines()
+                input = text_input
+
         device = "cuda"
-        model_input = {modality: modality_function([input_data], device)}
+        model_input = {modality: modality_function([input], device)}
 
         with torch.no_grad():
             embeddings = self.model(model_input)
