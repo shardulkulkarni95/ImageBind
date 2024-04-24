@@ -1,12 +1,12 @@
 # Prediction interface for Cog ⚙️
 # https://github.com/replicate/cog/blob/main/docs/python.md
 
-from typing import List, Optional
+from typing import List
 from cog import BasePredictor, Input, Path
-import data
 import torch
-from models import imagebind_model
-from models.imagebind_model import ModalityType
+from imagebind import data
+from imagebind.models import imagebind_model
+from imagebind.models.imagebind_model import ModalityType
 
 MODALITY_TO_PREPROCESSING = {
     ModalityType.TEXT: data.load_and_transform_text,
@@ -61,9 +61,10 @@ class Predictor(BasePredictor):
                 input = text_input
 
         device = "cuda"
-        model_input = {modality: modality_function([input], device)}
+        inference_modality = modality if modality != "video" else "vision"
+        model_input = {inference_modality: modality_function([input], device)}
 
         with torch.no_grad():
             embeddings = self.model(model_input)
-        emb = embeddings[modality]
+        emb = embeddings[inference_modality]
         return emb.cpu().squeeze().tolist()
